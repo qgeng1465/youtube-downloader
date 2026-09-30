@@ -77,12 +77,14 @@ class App:
             return
         fmt_key = list(FORMATS.keys())[self.fmt.current()]
         proxy = detect_proxy() if self.use_proxy.get() else None
-        self.btn.configure(state="disabled")
-        threading.Thread(target=self._run, args=(url, fmt_key, proxy), daemon=True).start()
-
-    def _run(self, url, fmt_key, proxy):
+        # tkinter 变量必须在主线程读取，worker 线程里读会偶发 RuntimeError: main thread is not in main loop
         outdir = self.outdir.get().strip() or "downloads"
-        cmd = build_cmd(url, fmt_key, outdir, proxy, self.playlist.get())
+        playlist = self.playlist.get()
+        self.btn.configure(state="disabled")
+        threading.Thread(target=self._run, args=(url, fmt_key, proxy, outdir, playlist), daemon=True).start()
+
+    def _run(self, url, fmt_key, proxy, outdir, playlist):
+        cmd = build_cmd(url, fmt_key, outdir, proxy, playlist)
         self._log("> " + " ".join(cmd[:6]) + " …")
         try:
             p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,

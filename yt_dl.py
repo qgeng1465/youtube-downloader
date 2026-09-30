@@ -29,7 +29,7 @@ for _s in (sys.stdout, sys.stderr):
     except Exception:
         pass
 
-__version__ = "1.0.0"
+__version__ = "1.0.1"
 
 COMMON_PROXY_PORTS = [7897, 7890, 10809, 10808, 8888, 1080]
 FORMATS = {
@@ -91,9 +91,12 @@ def build_cmd(url, fmt, out_dir, proxy, playlist):
 def download(url, fmt="best", out_dir="downloads", proxy=None, playlist=False):
     if not ensure_ytdlp():
         return "未安装 yt-dlp，且自动安装失败"
-    proxy = proxy or detect_proxy()
+    # proxy 三态：None=自动探测；False=强制直连（--no-proxy）；字符串=指定代理
+    proxy = detect_proxy() if proxy is None else proxy
     if proxy:
         print(f"[*] 使用代理: {proxy}", flush=True)
+    elif proxy is False:
+        print("[*] 已按 --no-proxy 直连，不使用代理", flush=True)
     os.makedirs(out_dir, exist_ok=True)
     cmd = build_cmd(url, fmt, out_dir, proxy, playlist)
     print(f"[*] 开始下载: {url}", flush=True)
@@ -124,7 +127,7 @@ def main():
         return
 
     err = download(args.url, args.format, args.output,
-                   None if args.no_proxy else args.proxy, args.playlist)
+                   False if args.no_proxy else args.proxy, args.playlist)
     if err:
         print("[!] " + err)
         sys.exit(1)
